@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">booking-restaurant-api</a> &gt; <a href="index.source.html" class="el_package">com.boot.bookingrestaurantapi.services.impl</a> &gt; <span class="el_source">ReservationServiceImpl.java</span></div><h1>ReservationServiceImpl.java</h1><pre class="source lang-java linenums">package com.boot.bookingrestaurantapi.services.impl;
+
+import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.boot.bookingrestaurantapi.entities.Reservation;
+import com.boot.bookingrestaurantapi.entities.Restaurant;
+import com.boot.bookingrestaurantapi.entities.Turn;
+import com.boot.bookingrestaurantapi.exceptions.BookingException;
+import com.boot.bookingrestaurantapi.exceptions.InternalServerErrorException;
+import com.boot.bookingrestaurantapi.exceptions.NotFountException;
+import com.boot.bookingrestaurantapi.jsons.CreateReservationRest;
+import com.boot.bookingrestaurantapi.jsons.ReservationRest;
+import com.boot.bookingrestaurantapi.repositories.ReservationRespository;
+import com.boot.bookingrestaurantapi.repositories.RestaurantRepository;
+import com.boot.bookingrestaurantapi.repositories.TurnRepository;
+import com.boot.bookingrestaurantapi.services.ReservationService;
+
+@Service
+<span class="fc" id="L23">public class ReservationServiceImpl implements ReservationService {</span>
+
+<span class="fc" id="L25">	private static final Logger LOGGER = LoggerFactory.getLogger(ReservationServiceImpl.class);</span>
+
+	@Autowired
+	private RestaurantRepository restaurantRepository;
+
+	@Autowired
+	private TurnRepository turnRepository;
+
+	@Autowired
+	private ReservationRespository reservationRepository;
+
+<span class="fc" id="L36">	public static final ModelMapper modelMapper = new ModelMapper();</span>
+
+	public ReservationRest getReservation(Long reservationId) throws BookingException {
+<span class="nc" id="L39">		return modelMapper.map(getReservationEntity(reservationId), ReservationRest.class);</span>
+	}
+
+	public String createReservation(final CreateReservationRest createReservationRest) throws BookingException {
+
+<span class="fc" id="L44">		final Restaurant restaurantId = restaurantRepository.findById(createReservationRest.getRestaurantId())</span>
+<span class="fc" id="L45">				.orElseThrow(() -&gt; new NotFountException(&quot;RESTAURANT_NOT_FOUND&quot;, &quot;RESTAURANT_NOT_FOUND&quot;));</span>
+
+<span class="fc" id="L47">		final Turn turn = turnRepository.findById(createReservationRest.getTurnId())</span>
+<span class="fc" id="L48">				.orElseThrow(() -&gt; new NotFountException(&quot;TURN_NOT_FOUND&quot;, &quot;TURN_NOT_FOUND&quot;));</span>
+
+<span class="fc bfc" id="L50" title="All 2 branches covered.">		if (reservationRepository.findByTurnAndRestaurantId(turn.getName(), restaurantId.getId()).isPresent()) {</span>
+<span class="fc" id="L51">			throw new NotFountException(&quot;RESERVATION_ALREADT_EXIST&quot;, &quot;RESERVATION_ALREADT_EXIST&quot;);</span>
+		}
+
+<span class="fc" id="L54">		String locator = generateLocator(restaurantId, createReservationRest);</span>
+
+<span class="fc" id="L56">		final Reservation reservation = new Reservation();</span>
+<span class="fc" id="L57">		reservation.setLocator(locator);</span>
+<span class="fc" id="L58">		reservation.setPerson(createReservationRest.getPerson());</span>
+<span class="fc" id="L59">		reservation.setDate(createReservationRest.getDate());</span>
+<span class="fc" id="L60">		reservation.setRestaurant(restaurantId);</span>
+<span class="fc" id="L61">		reservation.setTurn(turn.getName());</span>
+
+		try {
+<span class="fc" id="L64">			reservationRepository.save(reservation);</span>
+<span class="fc" id="L65">		} catch (final Exception e) {</span>
+<span class="fc" id="L66">			LOGGER.error(&quot;INTERNAL_SERVER_ERROR&quot;, e);</span>
+<span class="fc" id="L67">			throw new InternalServerErrorException(&quot;INTERNAL_SERVER_ERROR&quot;, &quot;INTERNAL_SERVER_ERROR&quot;);</span>
+<span class="fc" id="L68">		}</span>
+<span class="fc" id="L69">		return locator;</span>
+	}
+
+	private String generateLocator(final Restaurant restaurantId, final CreateReservationRest createReservationRest)
+			throws BookingException {
+<span class="fc" id="L74">		return restaurantId.getName() + createReservationRest.getTurnId();</span>
+	}
+
+	private Reservation getReservationEntity(Long reservationId) throws BookingException {
+<span class="nc" id="L78">		return reservationRepository.findById(reservationId)</span>
+<span class="nc" id="L79">				.orElseThrow(() -&gt; new NotFountException(&quot;SNOT-404-1&quot;, &quot;RESERVATION_NOT_FOUND&quot;));</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>
